@@ -1,15 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+import streamlit as st
 import requests
 import os
 import re
-from werkzeug.utils import secure_filename
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
-
-# Create uploads directory if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+from PIL import Image
+import tempfile
 
 # List of allowed file extensions for uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -17,61 +11,112 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def main():
+    st.set_page_config(page_title="Species Information Finder", layout="wide")
+    
+    st.title("Species Information Finder")
+    st.write("Discover information about any species by name or by uploading an image.")
+    
+    # Create tabs for different functionality
+    tab1, tab2 = st.tabs(["Search by Name", "Search by Image"])
+    
+    with tab1:
+        st.header("Search by Species Name")
+        species_name = st.text_input("Enter a species name (common or scientific):")
+        
+        if st.button("Search"):
+            if not species_name:
+                st.error("Please enter a species name")
+            else:
+                with st.spinner("Searching for species information..."):
+                    # Get species info from Wikispecies API
+                    species_data = get_species_info(species_name)
+                    
+                    # Get images from Wikimedia Commons API
+                    images = get_species_images(species_name)
+                    
+                    display_results(species_data, images)
+    
+    with tab2:
+        st.header("Search by Image Upload")
+        uploaded_file = st.file_uploader("Upload an image of a species", type=ALLOWED_EXTENSIONS)
+        
+        if uploaded_file is not None:
+            if allowed_file(uploaded_file.name):
+                # Display the uploaded image
+                image = Image.open(uploaded_file)
+                st.image(image, caption="Uploaded Image", use_column_width=True)
+                
+                if st.button("Identify Species"):
+                    with st.spinner("Identifying species from image..."):
+                        # In a real app, you would call an image recognition API here
+                        # For demo purposes, we'll use our mock function
+                        species_name = get_mock_species_from_filename(uploaded_file.name)
+                        
+                        # Get species info from Wikispecies API
+                        species_data = get_species_info(species_name)
+                        
+                        # Get images from Wikimedia Commons API
+                        images = get_species_images(species_name)
+                        
+                        display_results(species_data, images)
+            else:
+                st.error("File type not allowed. Please upload an image file (PNG, JPG, JPEG, GIF).")
 
-@app.route('/search_by_name', methods=['POST'])
-def search_by_name():
-    species_name = request.form.get('species_name')
-    if not species_name:
-        return jsonify({'error': 'No species name provided'}), 400
+def display_results(species_data, images):
+    """Display the results in a formatted way."""
+    if "error" in species_data:
+        st.error(species_data["error"])
+        return
     
-    # Get species info from Wikispecies API
-    species_data = get_species_info(species_name)
+    st.success(f"Found information for: {species_data['title']}")
     
-    # Get images from Wikimedia Commons API
-    images = get_species_images(species_name)
+    # Create columns for layout
+    col1, col2 = st.columns([1, 2])
     
-    return jsonify({
-        'species_data': species_data,
-        'images': images
-    })
+    with col1:
+        # Display classification information
+        st.subheader("Classification")
+        classification = species_data.get("classification", {})
+        for rank, value in classification.items():
+            if value != "Unknown":
+                st.write(f"**{rank.capitalize()}:** {value}")
+        
+        # Display habitat information
+        if species_data.get("habitat", "Unknown") != "Unknown":
+            st.subheader("Habitat")
+            st.write(species_data["habitat"])
+    
+    with col2:
+        # Display description
+        st.subheader("Description")
+        st.write(species_data.get("description", "No description available."))
+        
+        # Display fun facts if available
+        if species_data.get("fun_facts"):
+            st.subheader("Interesting Facts")
+            for i, fact in enumerate(species_data["fun_facts"], 1):
+                st.write(f"{i}. {fact}")
+    
+    # Display images if available
+    if images:
+        st.subheader("Related Images")
+        
+        # Display up to 4 images in a grid
+        cols = st.columns(min(4, len(images)))
+        for idx, img in enumerate(images[:4]):
+            with cols[idx]:
+                if "thumb_url" in img:
+                    st.image(img["thumb_url"], caption=img.get("description", ""), use_column_width=True)
+                else:
+                    st.image(img["url"], caption=img.get("description", ""), use_column_width=True)
+                st.caption(f"Credit: {img.get('author', 'Unknown')} | License: {img.get('license', 'Unknown')}")
+    else:
+        st.warning("No images found for this species.")
 
-@app.route('/upload_image', methods=['POST'])
-def upload_image():
-    # Check if a file was uploaded
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    file = request.files['file']
-    
-    # If user doesn't select file, browser submits an empty file
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
-    # Check if the file is allowed
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        
-        # Here we would call an image recognition API
-        # For demonstration, let's make a simple mock recognition based on the filename
-        species_name = get_mock_species_from_filename(filename)
-        
-        # Get species info from Wikispecies API
-        species_data = get_species_info(species_name)
-        
-        # Get images from Wikimedia Commons API
-        images = get_species_images(species_name)
-        
-        return jsonify({
-            'species_data': species_data,
-            'images': images
-        })
-    
-    return jsonify({'error': 'File type not allowed'}), 400
+# All the existing functions from your Flask app can remain exactly the same
+# (get_species_info, get_wikispecies_data, get_wikipedia_data, etc.)
+# I'll include them below for completeness, but they don't need to change
 
 def get_species_info(species_name):
     """
@@ -251,6 +296,7 @@ def get_wikispecies_data(species_name):
                     if link.endswith("idae"):  # Family suffix
                         species_info["classification"]["family"] = link
                     elif link.endswith("inae"):  # Subfamily suffix
+                        # Store subfamily info in a separate key
                         species_info["classification"]["subfamily"] = link
                     elif link.endswith("ales"):  # Order suffix for plants
                         species_info["classification"]["order"] = link
@@ -1293,6 +1339,5 @@ def extract_taxonomy_from_text(text, classification):
     
     return classification
 
-# Run the app
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
