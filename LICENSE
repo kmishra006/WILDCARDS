@@ -1,0 +1,36 @@
+
+---
+
+### 📝 `CHANGELOG.md`
+
+```markdown
+# 🧾 Changelog – WILDCARD
+
+All notable changes to this project will be documented here.  
+This project follows the [Semantic Versioning](https://semver.org/) and [Semantic Commit Messages](https://www.conventionalcommits.org/) conventions.
+
+---
+
+## [0.1.0] – 2025-06-30
+
+### Added
+- Initial project setup (README, CONTRIBUTING, GitLab repo)
+- Created basic React frontend structure
+- Set up Python FastAPI backend with uv
+- Added Wikispecies API call module
+
+---
+
+## [0.2.0] – 2025-06-30
+
+### Added
+- Integrated image upload and preview UI
+- Connected Commons API to fetch species images
+
+### Changed
+- Improved multilingual support for home page
+
+### Fixed
+- Timeout issue on species search fallback
+
+

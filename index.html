@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeciScan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-leaf"></i> SpeciScan</h1>
+            <p>Identify animals and plants and learn about them</p>
+        </header>
+
+        <div class="main-content">
+            <div class="search-methods">
+                <div class="method-card">
+                    <h2><i class="fas fa-camera"></i> Upload Image</h2>
+                    <p>Take or upload a photo to identify the species</p>
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="file-upload">
+                            <label for="file-input">
+                                <div class="upload-zone" id="upload-zone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Click to select or drag an image here</p>
+                                    <p class="file-name" id="file-name"></p>
+                                </div>
+                            </label>
+                            <input id="file-input" type="file" name="file" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn primary-btn">
+                            <i class="fas fa-search"></i> Identify Species
+                        </button>
+                    </form>
+                </div>
+
+                <div class="method-card">
+                    <h2><i class="fas fa-keyboard"></i> Enter Species Name</h2>
+                    <p>Type the name of the species you want to learn about</p>
+                    <form id="name-form">
+                        <input type="text" name="species_name" placeholder="E.g., Panthera leo (Lion)" required>
+                        <button type="submit" class="btn primary-btn">
+                            <i class="fas fa-search"></i> Find Species
+                        </button>
+                    </form>
+                    <div class="suggestions">
+                        <p>Try these examples:</p>
+                        <div class="suggestion-chips">
+                            <span class="chip" data-species="Panthera leo">Lion</span>
+                            <span class="chip" data-species="Panthera tigris">Tiger</span>
+                            <span class="chip" data-species="Ursus arctos">Bear</span>
+                            <span class="chip" data-species="Helianthus annuus">Sunflower</span>
+                            <span class="chip" data-species="Quercus">Oak Tree</span>
+                            <span class="chip" data-species="Apis mellifera">Honey Bee</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results" id="results">
+                <!-- Results will be displayed here -->
+            </div>
+        </div>
+
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="spinner"></div>
+            <p>SpeciScan in progress...</p>
+        </div>
+
+        <footer>
+            <p>Data provided by <a href="https://species.wikimedia.org/" target="_blank">Wikispecies</a> and 
+            <a href="https://commons.wikimedia.org/" target="_blank">Wikimedia Commons</a></p>
+            <p>&copy; 2025 SpeciScan - Educational App</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
